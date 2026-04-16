@@ -1,0 +1,130 @@
+import folium
+import os
+import webbrowser
+from collections import deque
+
+
+def bfs(graph, start, end):
+    queue = deque([[start]])
+    visited = set()
+
+    while queue:
+        path = queue.popleft()
+        node = path[-1]
+
+        if node == end:
+            return path
+
+        if node not in visited:
+            visited.add(node)
+
+            for neighbor, _ in graph[node]:
+                new_path = list(path)
+                new_path.append(neighbor)
+                queue.append(new_path)
+
+    return None
+
+
+def dfs(graph, start, end, path=None, visited=None):
+    if visited is None:
+        visited = set()
+
+    if path is None:
+        path = [start]
+
+    if start == end:
+        return path
+
+    visited.add(start)
+
+    for neighbor, _ in graph[start]:
+        if neighbor not in visited:
+            new_path = dfs(graph, neighbor, end, path + [neighbor], visited)
+            if new_path:
+                return new_path
+
+    return None
+
+
+locations = {
+    "Delhi": (28.7041, 77.1025),
+    "Agra": (27.1767, 78.0081),
+    "Jaipur": (26.9124, 75.7873),
+    "Chandigarh": (30.7333, 76.7794),
+    "Nahan": (30.5603, 77.2945)
+}
+
+
+graph = {
+    "Delhi": [("Agra", 230), ("Jaipur", 280), ("Chandigarh", 250)],
+    "Agra": [("Delhi", 230), ("Jaipur", 240), ("Chandigarh", 250)],
+    "Jaipur": [("Delhi", 280), ("Agra", 240), ("Chandigarh", 300)],
+    "Chandigarh": [("Delhi", 250), ("Agra", 250), ("Jaipur", 300), ("Nahan", 85)],
+    "Nahan": [("Chandigarh", 85)]
+}
+
+
+print("\nAvailable Cities:")
+for city in locations:
+    print(city)
+
+
+start_city = input("\nEnter Starting City: ").title()
+end_city = input("Enter Destination City: ").title()
+
+
+if start_city not in graph or end_city not in graph:
+    print("Invalid city")
+    exit()
+
+
+print("\nChoose Algorithm")
+print("1. BFS")
+print("2. DFS")
+
+choice = input("Enter choice: ")
+
+
+if choice == "1":
+    path = bfs(graph, start_city, end_city)
+
+elif choice == "2":
+    path = dfs(graph, start_city, end_city)
+
+else:
+    print("Invalid choice")
+    exit()
+
+
+if path is None:
+    print("No path found")
+    exit()
+
+
+print("\nPath:", " -> ".join(path))
+
+
+m = folium.Map(location=[29.5, 77.2], zoom_start=6)
+
+
+for place, coord in locations.items():
+    folium.Marker(coord, popup=place).add_to(m)
+
+
+path_coords = [locations[node] for node in path]
+
+
+folium.PolyLine(
+    path_coords,
+    color="blue",
+    weight=6
+).add_to(m)
+
+
+file_path = os.path.abspath("path_map.html")
+m.save(file_path)
+
+print("\nMap saved at:", file_path)
+
+webbrowser.open("file://" + file_path)
